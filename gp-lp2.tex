@@ -129,16 +129,14 @@ update the estimation for using percepts during the solution of the
 problem, but which we can estimate the value of based on some
 information known about the problem \emph{a-priori}.
 
+% More abstract -- ?? 
 It would be possible to model these problems as POMDPs at the cost of
 unnecessary computational expense -- we present a method that allows
 for getting optimal class solutionso of problems given a fixed
 planning horizon.
 
 \begin{definition}{Mixed Observable-Non-Observable Markov Decision Process (MONOMDP) }\label{def:mdpp}
-  % Relate to MDPs/POMDPs?
-  % We're avoiding explicit state enumeration and still
-  % getting exact answers, maybe use 'symbolic' / 'bounded'.
-  % Relate some kind of markov process to these constraints.
+
   We describe a \emph{Mixed Observable-Non-Observable Markov Decision
     Process} (MONOMDP) as a transition system composed of a mix of
   random variables (representing state components which we cannot know
@@ -147,10 +145,27 @@ planning horizon.
   and an objective function we want to maximize while obeying the
   transition system. A MONOMDP $M = (X, f, g)$ is:
 
+  % 1. Distinguish between states/actions (add an action to the tf)
+  %
+
+  % 2. The actual value of whether or not we were seen is boolean, we
+  % have a probability estimate. So there are variables we can control
+  % and ones we can't which we have some estimation for.
+
+  % 3. Separate state and action variables.
+
+  % 4. Uncertainty is part of start state, (??)
+
+  % 5 separate states/actions, binary state + set of actions,
+  % uncertainty is start state, it is a set of probabilities.
+
+  % What is the desired output? A sequence of actions.
   \begin{itemize}
   \item A set of $m$ binary decision variables $B = \{b_{1}...b_{m}\}, b_i \in \{0,1\} \forall 0 \leq i \leq m$
 
-  \item A set of $n$ continuous random variables $R = \{r_{1}...r_{n}\}$.
+
+    % 
+  \item A set of $n$ probability estimates: $R = \{r_{1}...r_{n}\}$.
 
   \item The state space $X = (B, R)$. A state $x \in X$ composed of
     $M$ binary variables and $N$ random variables, that is,
@@ -298,8 +313,8 @@ Our transition function defined in \autoref{def:mdpp} defines the
 relationship between current and subsequent variables in this way:
 
 \begin{equation}
-  P(r_{i,(k+1)} = \text{true}) = \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M
-  P(r_{i,(k+1)} = \text{false}) = \sum_{j} c^{\bot}_j \prod_{l} v_{l,k}^{b_{j,l}} \forall 0 \leq i \leq M
+  P(r_{i,(k+1)} = \text{true}) = \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M \\ 
+  P(r_{i,(k+1)} = \text{false}) = \sum_{j} c^{\bot}_j \prod_{l} v_{l,k}^{b_{j,l}} \forall 0 \leq i \leq M \\
 \end{equation}
 
 But a posynomial constraint $f_i(x)$ in a GP, because of our use of the
@@ -315,7 +330,7 @@ list only the $\text{true}$ variable, the
 $P(r_{i,(k+1)}=\text{false})$ is symmetrical:
 
 \begin{equation}
-  P(r_{i,(k+1)}\alpha \leq \text{true}) > \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M, \alpha > 0
+  P(r_{i,(k+1)}\alpha \leq \text{true}) > \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M, \alpha > 0 \\
   P(r_{i,(k+1)}\beta \leq \text{true}) < \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M, 0 < \beta < 1
 \end{equation}
 
