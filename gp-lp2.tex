@@ -138,12 +138,9 @@ planning horizon.
 \begin{definition}{Mixed Observable-Non-Observable Markov Decision Process (MONOMDP) }\label{def:mdpp}
 
   We describe a \emph{Mixed Observable-Non-Observable Markov Decision
-    Process} (MONOMDP) as a transition system composed of a mix of
-  random variables (representing state components which we cannot know
-  the true value of during the solution of the problem -- that is,
-  non-observable) and binary variables (which are fully observable),
-  and an objective function we want to maximize while obeying the
-  transition system. A MONOMDP $M = (X, f, g)$ is:
+  Process} (MONOMDP) $M = (S, A, p, s_0, g)$ where:
+
+  % 0. NP or P-Space?
 
   % 1. Distinguish between states/actions (add an action to the tf)
   %
@@ -161,38 +158,42 @@ planning horizon.
 
   % What is the desired output? A sequence of actions.
   \begin{itemize}
-  \item A set of $m$ binary decision variables $B = \{b_{1}...b_{m}\}, b_i \in \{0,1\} \forall 0 \leq i \leq m$
+  \item $S$ is the state space A state $s \in S$ is composed of $m$
+    boolean state elements $B(s) = (b_{0}...b_{m-1})$ which are fully
+    observable, and $n$ boolean state elements which are not
+    observable but for which we have some probabilistic model $R(s) =
+    (r_{0}...r_{n-1})$. We then define the state $s \in S$ as $s =
+    (b_0,...b_{m-1},s_0,...s_{n-1})$. For compactness of notation we
+    sometimes refer to the components of $s$ as $s_0...s_{m+n-1}$,
+    indicating by the index value when necessary if a state variable
+    is in $R(s)$ or $B(s)$.
 
+  \item A set of actions $A$.
 
-    % 
-  \item A set of $n$ probability estimates: $R = \{r_{1}...r_{n}\}$.
+  \item The set $S'$ of state estimations where some $s' \in S'$ is
+    composed of the regular boolean variables $B(s)$ and a probability
+    estimate for each $R(s)$: $s' =
+    (b_0,...,b_{m-1},P(r_0=\text{true}),...,P(r_{n-1}=\text{true}))$.
 
-  \item The state space $X = (B, R)$. A state $x \in X$ composed of
-    $M$ binary variables and $N$ random variables, that is,
-    $x = (B,R)$. For convenience, we'll index state variables in $x$
-    from $0$ to $N+M$. That is $v_{1}$ would be the first binary
-    variable (unless $B = \emptyset$), and $v_{M}$ would be the first
-    random variable.
+  \item A transition model, $p: S' \times A \rightarrow S'$, which
+    takes a state and action and returns a tuple $(b_{0}', b_{2}',
+    .... b_{m-1}',
+    P(r_0'=\text{true}),...P(r_{n-1}'=\text{true}))$. This models both
+    some components which have a predetermined outcome, and others
+    which have a probabilistic outcome. The probabilistic $r_i$
+    components cannot be observed during planning or plan execution.
 
-  \item Some transition function $f : X \rightarrow X$. Denoting a
-    state variable $v$ in the 'next step' as $v_{k+1}$, this
-    transition function must take the form:
+  \item Some initial state $s_0$ which is the only fully observable
+    state (that is, we know exactly our initial state but after that
+    we can never observe the value of the $r_i$ components of any
+    state).
 
-    \begin{equation}
-      P(r_{i,(k+1)} = \text{true}) = \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M
-      P(r_{i,(k+1)} = \text{false}) = \sum_{j} c^{\bot}_j \prod_{l} v_{l,k}^{b_{j,l}} \forall 0 \leq i \leq M
-    \end{equation}
-
-    That is, each random variable must be defined as a posynomial
-    function of decision variables from the previous step.
-
-  \item $g(X) \rightarrow \mathbb{R}$, a utility function, which takes the form:
-
-    \begin{equation}
-      \sum_{j}^{N} w_j r_{j}
-    \end{equation}
-
+  \item $g: S \rightarrow \mathbb{R}$, a utility function.
   \end{itemize}
+
+  A solution to a MONOMDP problem is a sequence of actions
+  $(a_0,a_1...a_N)$ which makes a path from the initial state $s_0$ to
+  the state of maximum utility, $s_N$.
 
 \end{definition}
 
@@ -205,6 +206,10 @@ off-the-shelf geometric programming solvers to help solve our problem,
 but instead in the power of the log transformation critical to
 geometric programs to enable further analysis.
 
+    %% \begin{align}
+    %%   P(r_{i,(k+1)} = \text{true}) &= \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \\
+    %%   P(r_{i,(k+1)} = \text{false}) &= \sum_{j} c^{\bot}_j \prod_{l} v_{l,k}^{b_{j,l}} \\
+    %% \end{align}
 \subsection{Geometric Programming}
 
 A geometric program (GP) is a type of mathematical optimization
@@ -326,31 +331,19 @@ f_i(x) \leq 1, \quad i = 1, 2, \ldots, m
 
 In order to preserve the equality constraint, we transform this
 equality into a bounded rage for both values of $P(r_{i,(k+1)})$. We
-list only the $\text{true}$ variable, the
-$P(r_{i,(k+1)}=\text{false})$ is symmetrical:
-
-\begin{equation}
-  P(r_{i,(k+1)}\alpha \leq \text{true}) > \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M, \alpha > 0 \\
-  P(r_{i,(k+1)}\beta \leq \text{true}) < \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M, 0 < \beta < 1
-\end{equation}
-
-Then the first equation easily takes the desired form:
-\begin{equation}
-  1 > \frac{(\sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M)}{P(r_{i,(k+1)}) \alpha}, \alpha > 0
-\end{equation}
-
-The second requires more algebra and also leverages the fact that in
-our problem definition, we require separate equations for both the
-true and false probabilities as separate decision variables:
+list only the $\text{true}$ variable, other variables follow the same procedure:
 
 \begin{align*}
-  P(r_{i,(k+1)} \text{true})\beta &< \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M \\
-  0 &< \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} - P(r_{i,(k+1)} = true)\beta \\
-  0 &< \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} - (1 - P(r_{i,(k+1)} = false))\beta \\
-  0 &< \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} - 1\beta + P(r_{i,(k+1)} = false)\beta \\
-  0 &< \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} - 1\beta + P(r_{i,(k+1)} = false)\beta  \\
-  1 &< (\sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}})/\beta + P(r_{i,(k+1)} = false)
+  \alpha P(r_{i,(k+1)} = \text{true}) > \sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M, \alpha > 1 \\
+  P(r_{i,(k+1)} = \text{true}) > \beta (\sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M), 0 < \beta < 1
 \end{align*}
+
+Then the first equation easily takes the desired form:
+
+\begin{align}
+  1 > \frac{(\sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M)}{P(r_{i,(k+1)}) \alpha}, \alpha > 1 \\
+  1 > \beta \frac{(\sum_{j} c^{\top}_j \prod_{l} v_{l,k}^{a_{j,l}} \forall 0 \leq i \leq M)}{P(r_{i,(k+1)})}, 0 < \beta < 1  
+\end{align}
 
 
 \subsection{Geometric Programming Transformation}
